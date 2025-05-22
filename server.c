@@ -1,13 +1,17 @@
 #include <stdio.h>
-#include <netdb.h>
-#include <netinet/in.h>
+//#include <ff_loop.h>
+//#include <netdb.h>
+#include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include "ff_api.h"
+//#include "ff_config.h
 #include <unistd.h>
+
 #define MAX 80
 #define PORT 9002  // metti la porta necesaria
-#define SA struct sockaddr
+#define SA struct linux_sockaddr
 
 //chat between client and server
 void func(int connfd)
@@ -20,7 +24,7 @@ void func(int connfd)
         memset(buff, 0, MAX);
 
         // read the message from client and copy it in buffer
-        read(connfd, buff, MAX);
+        ff_read(connfd, buff, MAX);
         printf("Client message: %s\n", buff);
         printf("Server message: ");
         memset(buff, 0, MAX);
@@ -32,7 +36,7 @@ void func(int connfd)
         }
 
         //send message to client
-        write(connfd, buff, MAX);
+ff_write(connfd, buff, MAX);
 
         if (strncmp("exit", buff, 4) == 0) {
             printf("Server Exit...\n");
@@ -42,13 +46,12 @@ void func(int connfd)
 }
 
 
-int main()
-{
+int main1(void *argv) {
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
 
     // socket create
-    sockfd = socket(AF_INET, SOCK_STREAM, 0); //socket(prot ipv4, tcp, ?)
+    sockfd = ff_socket(AF_INET, SOCK_STREAM, 0); //socket(prot ipv4, tcp, ?)
     if (sockfd == -1) {
         printf("socket creation failed...\n");
         exit(0);
@@ -58,19 +61,21 @@ int main()
 
 
     // assign IP, PORT of server
-    servaddr.sin_family = AF_INET; //
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_family = AF_INET; 
+   // #unsigned short port = htons(PORT);
+   // #memcpy(&servaddr.sa_data[0], &port, sizeof(port));
+   // #nsigned int ip = htonl(INADDR_ANY);
+   // #memcpy(&servaddr.sa_data[2], &ip, sizeof(ip));
     servaddr.sin_port = htons(PORT);
-
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     // Binding
-    if (bind(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) { //
+    if (ff_bind(sockfd, (struct linux_sockaddr *)&servaddr, sizeof(servaddr)) != 0) { //
         printf("socket bind failed...\n");
         exit(0);
     }
     printf("Socket successfully binded..\n");
-
-    //server listen
-    if (listen(sockfd, 5) != 0) {
+//server listen
+    if (ff_listen(sockfd, 5) != 0) {
         printf("Listen failed...\n");
         exit(0);
     }
@@ -78,7 +83,7 @@ int main()
     len = sizeof(cli);
 
     // Accept the data packet from client
-    connfd = accept(sockfd, (SA*)&cli, (socklen_t*)&len);
+    connfd = ff_accept(sockfd, (struct linux_sockaddr *)&cli, (socklen_t*)&len);
     if (connfd < 0) {
         printf("server accept failed...\n");
         exit(0);
@@ -89,6 +94,15 @@ int main()
     func(connfd);
 
     //close the socket
-    close(sockfd);
-    return 0;
+    ff_close(sockfd);
+}
+
+int main(int argc, char **argv) {
+  printf("starting server\n");
+  if(ff_init( argc, argv) != 0) {
+    printf("F-Stack init failed\n");
+    return -1;
+  }
+  ff_run(main1, NULL);
+  return 0;
 }

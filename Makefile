@@ -11,7 +11,7 @@ ifeq ($(FF_PATH),)
 endif
 
 ifeq ($(FF_DPDK),)
-    FF_DPDK = ${TOPDIR}/dpdk/build
+    FF_DPDK = ${TOPDIR}/dpdk
 endif
 
 # Detect DPDK via pkg-config
@@ -20,16 +20,21 @@ DPDK_CFLAGS :=
 DPDK_LDFLAGS :=
 
 LDFLAGS += -Wl,--no-as-needed
+LDFLAGS += -L$(FF_DPDK)/install/lib/aarch64-linux-gnu
+LDFLAGS += -Wl,-rpath,$(FF_DPDK)/install/lib/aarch64-linux-gnu
+LDFLAGS += -lrte_net_bond -L$(FF_DPDK)/install/lib/aarch64-linux-gnu -lnuma
+
 
 ifeq ($(shell $(PKGCONF) --exists libdpdk && echo 0),0)
-    DPDK_CFLAGS += $(shell $(PKGCONF) --cflags libdpdk)
-    DPDK_LDFLAGS += $(shell $(PKGCONF) --libs libdpdk) -lrte_net_bond
+    DPDK_CFLAGS += $(shell $(PKGCONF) --cflags libdpdk) -I$(FF_DPDK)/install/include
+    DPDK_LDFLAGS += $(shell $(PKGCONF) --libs libdpdk) -lrte_net_bond -lrte_bus_vdev -lrte_bus_pci -lrte_pci -lrte_ethdev -lrte_net -L$(FF_DPDK)/install/lib/aarch64-linux-gnu -lnuma
 else
     $(error "DPDK not found via pkg-config and no RTE_SDK set")
 endif
 
 # F-Stack Libraries
 LIBS += -L${FF_PATH}/lib -Wl,--whole-archive,-lfstack,--no-whole-archive
+
 
 # Final link libraries
 LIBS += -Wl,--no-whole-archive -lrt -lm -ldl -lcrypto -pthread -lnuma
@@ -45,11 +50,11 @@ server:
 client:
 	$(CC) -O -gdwarf-2 -DINET6 $(DPDK_CFLAGS) -I${TOPDIR}/lib -o ${TARGET}_client client.c $(LIBS) $(DPDK_LDFLAGS)
 
-tools:
-	$(MAKE) -C ${TOPDIR}/tools
+#tools:
+#	$(MAKE) -C ${TOPDIR}/tools
 
 clean:
 	rm -f *.o ${TARGET}_server ${TARGET}_client
-	$(MAKE) -C ${TOPDIR}/tools clean
+#	$(MAKE) -C ${TOPDIR}/tools clean
 
 

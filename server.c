@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include "ff_api.h"
+#include "ffsyscall/ff_syscall.h"
 //#include "ff_config.h
 #include <unistd.h>
 
@@ -24,7 +25,7 @@ void func(int connfd)
         memset(buff, 0, MAX);
 
         // read the message from client and copy it in buffer
-        ff_read(connfd, buff, MAX);
+        read(connfd, buff, MAX);
         printf("Client message: %s\n", buff);
         printf("Server message: ");
         memset(buff, 0, MAX);
@@ -36,7 +37,7 @@ void func(int connfd)
         }
 
         //send message to client
-ff_write(connfd, buff, MAX);
+        write(connfd, buff, MAX);
 
         if (strncmp("exit", buff, 4) == 0) {
             printf("Server Exit...\n");
@@ -51,7 +52,7 @@ int main1(void *argv) {
     struct sockaddr_in servaddr, cli;
 
     // socket create
-    sockfd = ff_socket(AF_INET, SOCK_STREAM, 0); //socket(prot ipv4, tcp, ?)
+    sockfd = socket(AF_INET, SOCK_STREAM, 0); //socket(prot ipv4, tcp, ?)
     if (sockfd == -1) {
         printf("socket creation failed...\n");
         exit(0);
@@ -69,13 +70,13 @@ int main1(void *argv) {
     servaddr.sin_port = htons(PORT);
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     // Binding
-    if (ff_bind(sockfd, (struct linux_sockaddr *)&servaddr, sizeof(servaddr)) != 0) { //
+    if (bind(sockfd, (struct linux_sockaddr *)&servaddr, sizeof(servaddr)) != 0) { //
         printf("socket bind failed...\n");
         exit(0);
     }
     printf("Socket successfully binded..\n");
 //server listen
-    if (ff_listen(sockfd, 5) != 0) {
+    if (listen(sockfd, 5) != 0) {
         printf("Listen failed...\n");
         exit(0);
     }
@@ -83,7 +84,7 @@ int main1(void *argv) {
     len = sizeof(cli);
 
     // Accept the data packet from client
-    connfd = ff_accept(sockfd, (struct linux_sockaddr *)&cli, (socklen_t*)&len);
+    connfd = accept(sockfd, (struct linux_sockaddr *)&cli, (socklen_t*)&len);
     if (connfd < 0) {
         printf("server accept failed...\n");
         exit(0);
@@ -94,7 +95,7 @@ int main1(void *argv) {
     func(connfd);
 
     //close the socket
-    ff_close(sockfd);
+    close(sockfd);
 }
 
 int main(int argc, char **argv) {

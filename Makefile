@@ -4,7 +4,8 @@ SRCS := server.c client.c
 
 CC ?= gcc
 
-TOPDIR = ../..
+TOPDIR = $(shell realpath ../..)
+FFSYSCALL_DIR := ${TOPDIR}/app/src/ffsyscall
 
 ifeq ($(FF_PATH),)
     FF_PATH = ${TOPDIR}
@@ -35,7 +36,7 @@ endif
 # F-Stack Libraries
 LIBS += -L${FF_PATH}/lib -Wl,--whole-archive,-lfstack,--no-whole-archive
 
-
+LIBS += $(FFSYSCALL_DIR)/libffsyscall.a
 # Final link libraries
 LIBS += -Wl,--no-whole-archive -lrt -lm -ldl -lcrypto -pthread -lnuma
 
@@ -45,10 +46,10 @@ TARGET = src
 all: server client
 
 server:
-	$(CC) -O -gdwarf-2 -DINET6 $(DPDK_CFLAGS) -I${TOPDIR}/lib -o ${TARGET}_server server.c $(LIBS) $(DPDK_LDFLAGS)
+	$(CC) -O -gdwarf-2 -DINET6 $(DPDK_CFLAGS) -I${TOPDIR}/lib -I$(TOPDIR)/app/src/ffsyscall -o ${TARGET}_server server.c $(LIBS) $(DPDK_LDFLAGS)
 
 client:
-	$(CC) -O -gdwarf-2 -DINET6 $(DPDK_CFLAGS) -I${TOPDIR}/lib -o ${TARGET}_client client.c $(LIBS) $(DPDK_LDFLAGS)
+	$(CC) -O -gdwarf-2 -DINET6 $(DPDK_CFLAGS) -I${TOPDIR}/lib -I$(TOPDIR)/app/src/ffsyscall -o ${TARGET}_client client.c $(LIBS) $(DPDK_LDFLAGS)
 
 #tools:
 #	$(MAKE) -C ${TOPDIR}/tools

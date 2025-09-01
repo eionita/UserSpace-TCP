@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "ff_api.h"
 #include <arpa/inet.h>
+#include "ffsyscall/ff_syscall.h"
 //#include <ff_loop.h>  // for ff_run
 
 #define MAX 80
@@ -23,11 +24,11 @@ void func(int sockfd) {
         while ((buff[n++] = getchar()) != '\n') {}
 
         // Send to server
-        ff_write(sockfd, buff, MAX);
+        write(sockfd, buff, MAX);
 
         // Read response
         memset(buff, 0, MAX);
-        ff_read(sockfd, buff, MAX);
+        read(sockfd, buff, MAX);
         printf("From Server : %s", buff);
 
         if (strncmp(buff, "exit", 4) == 0) {
@@ -36,30 +37,32 @@ void func(int sockfd) {
         }
     }
 }
-void my_client(void *arg) {
+void my_client(const char *server_ip) {
     int sockfd;
     struct sockaddr_in servaddr;
 
     // Create socket
-    sockfd = ff_socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
         printf("Socket creation failed...\n");
         exit(1);
     }
     printf("Socket successfully created..\n");
-    memset(&servaddr, 0, sizeof(servaddr));
 
     // Server IP and port
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
    // #unsigned short server_port = htons(PORT);
     //#memcpy(&servaddr.sa_data[0], &server_port, sizeof(server_port));
-    char server_ip[16] = "172.20.8.199";
+    //char server_ip[16] = "172.20.8.199";
     //#memcpy(&servaddr.sa_data[2], &server_ip, sizeof(server_ip));
     servaddr.sin_port=htons(PORT);
-    servaddr.sin_addr.s_addr=inet_addr(server_ip);
+    if(inet_pton(AF_INET, server_ip, &servaddr.sin_addr) <= 0){
+        printf("Invalid address/ Address not supported\n");
+        exit(1);
+    }
     // Connect to server
-    if (ff_connect(sockfd, (struct linux_sockaddr *)&servaddr, sizeof(servaddr)) != 0) {
+    if (connect(sockfd, (struct linux_sockaddr *)&servaddr, sizeof(servaddr)) != 0) {
         printf("Connection with the server failed...\n");
         exit(1);
     }
@@ -69,16 +72,27 @@ void my_client(void *arg) {
     func(sockfd);
 
     // Close socket
-    ff_close(sockfd);
+    close(sockfd);
+}
+
+void *client_thread_wrapper(void *arg){
+    const char *ip = (const char *)arg;
+    my_client(ip);
+    return NULL;
 }
 
 int main(int argc, char **argv) {
+
+    if(argc < 2){
+        printf("Uso: %s <IP_DEL_SERVER>\n", argv[0]);
+        return 1;
+    }
  if (ff_init(argc, argv) < 0) {
         printf("F-Stack init failed.\n");
         return -1;
     }
 
-    ff_run(my_client, NULL);
+    ff_run(client_thread_wrapper, argv[1]);
     return 0;
 }
 

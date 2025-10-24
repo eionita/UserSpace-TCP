@@ -2,10 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "ff_api.h"
 #include <arpa/inet.h>
-#include "ffsyscall/ff_syscall.h"
-//#include <ff_loop.h>  // for ff_run
 
 #define MAX 80
 #define PORT 9002
@@ -52,10 +49,6 @@ void my_client(const char *server_ip) {
     // Server IP and port
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-   // #unsigned short server_port = htons(PORT);
-    //#memcpy(&servaddr.sa_data[0], &server_port, sizeof(server_port));
-    //char server_ip[16] = "172.20.8.199";
-    //#memcpy(&servaddr.sa_data[2], &server_ip, sizeof(server_ip));
     servaddr.sin_port=htons(PORT);
     if(inet_pton(AF_INET, server_ip, &servaddr.sin_addr) <= 0){
         printf("Invalid address/ Address not supported\n");
@@ -75,24 +68,13 @@ void my_client(const char *server_ip) {
     close(sockfd);
 }
 
-void *client_thread_wrapper(void *arg){
-    const char *ip = (const char *)arg;
-    my_client(ip);
-    return NULL;
-}
-
 int main(int argc, char **argv) {
-
     if(argc < 2){
         printf("Uso: %s <IP_DEL_SERVER>\n", argv[0]);
         return 1;
     }
- if (ff_init(argc, argv) < 0) {
-        printf("F-Stack init failed.\n");
-        return -1;
-    }
-
-    ff_run(client_thread_wrapper, argv[1]);
+    const char *server_ip = argv[1];
+    my_client(server_ip);
     return 0;
 }
 

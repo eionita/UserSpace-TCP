@@ -1,17 +1,12 @@
 #include <stdio.h>
-//#include <ff_loop.h>
-//#include <netdb.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include "ff_api.h"
-#include "ffsyscall/ff_syscall.h"
-//#include "ff_config.h
 #include <unistd.h>
 
 #define MAX 80
-#define PORT 9002  // metti la porta necesaria
+#define PORT 9002
 #define SA struct linux_sockaddr
 
 //chat between client and server
@@ -47,7 +42,7 @@ void func(int connfd)
 }
 
 
-int main1(void *argv) {
+int main1() {
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
 
@@ -63,10 +58,6 @@ int main1(void *argv) {
 
     // assign IP, PORT of server
     servaddr.sin_family = AF_INET; 
-   // #unsigned short port = htons(PORT);
-   // #memcpy(&servaddr.sa_data[0], &port, sizeof(port));
-   // #nsigned int ip = htonl(INADDR_ANY);
-   // #memcpy(&servaddr.sa_data[2], &ip, sizeof(ip));
     servaddr.sin_port = htons(PORT);
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     // Binding
@@ -75,7 +66,7 @@ int main1(void *argv) {
         exit(0);
     }
     printf("Socket successfully binded..\n");
-//server listen
+    //server listen
     if (listen(sockfd, 5) != 0) {
         printf("Listen failed...\n");
         exit(0);
@@ -100,10 +91,6 @@ int main1(void *argv) {
 
 int main(int argc, char **argv) {
   printf("starting server\n");
-  if(ff_init( argc, argv) != 0) {
-    printf("F-Stack init failed\n");
-    return -1;
-  }
-  ff_run(main1, NULL);
+  main1();
   return 0;
 }
